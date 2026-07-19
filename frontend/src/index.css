@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-100 h-screen overflow-hidden;
+}
+
+#root {
+  @apply h-full;
+}
