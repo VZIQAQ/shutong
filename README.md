@@ -164,7 +164,7 @@ npm run dev
 
 # 5. 测试 / Test
 cd backend
-pytest src/tests/ -v
+pytest tests/ -v
 ```
 
 75 tests, all passing.
