@@ -4,33 +4,145 @@
 >
 > 书童是《人工智能协作规范》(HACP) 的第一个验证实现。
 > 不是生产级产品，是协议可行性的证明。
->
-> ShuTong is the first verification implementation of the Human-AI Collaboration Protocol (HACP).
-> Not a production product — a proof of protocol feasibility.
 
 ---
 
-## 核心验证 / What It Verifies
+## 一句话
 
-书童 V0.1 验证了 HACP 的第一步：**追问机制**。
+**把模型的语义判断能力嵌入代码的功能节点，替代关键词匹配和硬编码规则。**
 
-ShuTong V0.1 verifies the first step of HACP: the **questioning mechanism**.
+---
 
-- ✅ 意图识别：模型语义判断替代关键词匹配 / Intent recognition: model semantics replace keyword matching
-- ✅ 追问触发：模型暴露不确定性 + 规则引擎结构校验 / Questioning: model exposes uncertainty + rule engine validates structure
-- ✅ 停止信号："就这样" → 强制出预览 / Stop signal: "就这样" → force preview
-- ✅ 确认写入：用户确认的事实原文持久化 / Confirmation: user-confirmed facts persisted verbatim
+## 为什么做这件事
 
-## 快速开始 / Quick Start
+AI 系统里到处都是判断节点：用户说"就这样"是想停止还是随口一说？用户说"确认"是要写入还是只是附和？
 
-### 1. 克隆仓库 / Clone
+传统方案只有一个答案：**硬编码**。关键词列表、正则表达式、if-else 分支。列表永远膨胀，规则永远有漏洞。
+
+书童验证了第二种选择：**让本地小模型（7B 甚至更小）来理解语义，让代码来做确定性校验。**
+
+模型不做规则的事，规则不做模型的事。
+
+---
+
+## 核心特点
+
+### 1. 意图识别：模型语义判断替代关键词匹配
+
+```python
+# 传统做法：关键词列表，永远膨胀，永远误触发
+STOP_KEYWORDS = ["就这样", "先这样", "够了", "别问了", ...]
+if any(kw in user_input for kw in STOP_KEYWORDS):
+    stop()
+
+# 书童的做法：交给本地模型判断
+intent = await _recognize_intent(user_input)  # → "stop" / "continue" / ...
+```
+
+| 输入 | 关键词匹配 | 模型判断 |
+|------|-----------|---------|
+| "就这样" | ✅ 触发 | ✅ stop |
+| "我不想就这样结束" | ❌ 误触发 | ✅ continue（否定词反转） |
+| "赶紧给我出方案别墨迹了" | ❌ 漏掉 | ✅ stop（语义推断） |
+
+### 2. 追问触发：模型暴露不确定性 + 规则引擎结构校验
+
+LLM 生成认知显化（假设清单 + 盲区清单），规则引擎只做文本模式扫描：
+
+- 有"来源：纯猜测" → 强制追问
+- 有"是否阻断：是" → 强制追问
+- 没有假设清单结构 → 强制重新输出
+
+**模型负责暴露不确定性（概率性），规则负责校验结构完整性（确定性）。**
+
+### 3. 信息传递：选择可概率，传递必确定
+
+- 选择阶段：模型可以概率性地决定选哪条记忆、是否触发追问
+- 传递阶段：用户确认的事实必须原文完整注入，零压缩、零失真、可追溯
+
+预览中每条已确认要点必须附"用户原话"对照——防止 LLM 错误标注来源。
+
+---
+
+## 优势与局限
+
+### 优势
+
+| 维度 | 说明 |
+|------|------|
+| **语义理解** | 本地模型能理解"就这样"和"我不想就这样结束"的区别，关键词做不到 |
+| **零维护** | 不需要维护膨胀的关键词列表和 if-else 分支 |
+| **可审计** | 规则引擎只做文本扫描，结果确定性、可解释 |
+| **低成本** | 意图识别用本地 7B 模型，不调用云端 API |
+| **隐私安全** | 意图判断在本地完成，用户数据不出本机 |
+
+### 局限
+
+| 维度 | 说明 |
+|------|------|
+| **延迟** | 每次对话触发 2 次 LLM 调用（意图识别 + 认知显化），响应延迟约 2-10 秒 |
+| **本地模型能力** | 7B 模型对复杂语义的理解不如云端大模型，边界案例可能误判 |
+| **不稳定性** | 模型输出有概率性，同一输入可能返回不同意图 |
+| **资源占用** | 本地模型需要 GPU 显存（约 4-8GB） |
+
+---
+
+## 未来方向
+
+| 方向 | 说明 |
+|------|------|
+| **合并调用** | 将意图识别与认知显化合并为单次 LLM 调用，降低延迟 |
+| **更小模型** | 用 0.5B-1B 专用意图分类模型替代通用 7B 模型 |
+| **上下文编排** | 四层注意力位阶（系统/前置/中置/近因），不同位阶不同压缩规则 |
+| **记忆域** | 热/温/冷三层记忆，标签精确匹配，梦境整合自动沉淀 |
+| **编程 AI 对接** | 产品包驱动 Cursor / Claude / OpenAI 直接产出代码 |
+
+---
+
+## 协议适用性
+
+HACP（Human-AI Collaboration Protocol）不是特定产品的技术方案，是一种**人机协作协议**。
+
+适用场景：
+- 需求对齐：在动手之前确保 AI 和用户理解一致
+- 知识沉淀：将对话中的确认事实结构化持久化
+- 决策审计：每条决策都有来源标注和用户原话对照
+- 产品规划：从模糊想法到结构化产品包的渐进式对齐
+
+不适用场景：
+- 简单问答（不需要追问确认）
+- 实时交互（延迟太高）
+- 纯自动化流程（需要人工参与）
+
+---
+
+## 理论基础
+
+书童的理论体系基于三个原则：
+
+**1. 概率确定**
+系统在"选择行为"上接受概率性（模型判断），但在"信息传递"上保持绝对确定性（用户确认后原文注入）。
+
+**2. 禁止性描述优于正向描述**
+不说"你要诚实"，说"禁止把猜测当事实"。不说"你要追问"，说"存在 D 级假设时禁止不追问"。
+
+**3. 对齐是目的，不是手段**
+追问不是为了"更好地完成任务"，追问本身就是核心功能。产品包是终极交付物，不是中间步骤。
+
+详见 [docs/HACP_PROTOCOL.md](docs/HACP_PROTOCOL.md)
+
+---
+
+## 快速开始
+
+### 1. 克隆
 
 ```bash
-git clone https://github.com/yourusername/shutong.git
+git clone https://github.com/VZIQAQ/shutong.git
 cd shutong
 ```
 
-### 2. 启动后端 / Start Backend
+### 2. 启动后端
 
 ```bash
 cd backend
@@ -40,7 +152,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-### 3. 启动前端 / Start Frontend
+### 3. 启动前端
 
 ```bash
 cd frontend
@@ -49,24 +161,11 @@ npm install
 npm run dev
 ```
 
-### 4. 访问 / Open
+### 4. 访问
 
 浏览器访问 http://localhost:5173
 
-## 协议设计 / Protocol Design
-
-HACP（Human-AI Collaboration Protocol）包含四个组件 / contains four components:
-
-| 组件 / Component | 状态 / Status |
-|------|------|
-| 追问机制 / Questioning Mechanism | ✅ 已验证 / Verified |
-| 上下文编排器 / Context Orchestrator | 📝 协议设计 / Designed |
-| 记忆域数据库 / Memory Domain | 📝 协议设计 / Designed |
-| 概率确定 / Probabilistic Certainty | ⚠️ 部分验证 / Partial |
-
-详见 / See [docs/HACP_PROTOCOL.md](docs/HACP_PROTOCOL.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
-## 测试 / Tests
+### 5. 运行测试
 
 ```bash
 cd backend
@@ -75,7 +174,9 @@ pytest src/tests/ -v
 
 75 tests, all passing.
 
-## 技术栈 / Tech Stack
+---
+
+## 技术栈
 
 | Layer | Technology |
 |-------|-----------|
@@ -84,6 +185,47 @@ pytest src/tests/ -v
 | LLM (local) | Ollama + qwen2.5-fixed |
 | LLM (cloud) | OpenAI-compatible API |
 
-## 许可证 / License
+---
+
+## 项目结构
+
+```
+shutong/
+├── README.md
+├── LICENSE (MIT)
+├── docs/
+│   ├── HACP_PROTOCOL.md      # 协议设计（哲学与规则）
+│   └── ARCHITECTURE.md       # 架构实现（组件与路线图）
+├── backend/
+│   ├── src/
+│   │   ├── main.py           # FastAPI + WebSocket 入口
+│   │   └── core/
+│   │       ├── session.py          # 对话引擎主流程
+│   │       ├── rule_engine.py      # 规则引擎（文本模式扫描）
+│   │       ├── llm_client.py       # 双模型 LLM 客户端
+│   │       ├── shutong_state.py    # 文件状态机
+│   │       ├── file_bridge.py      # 文件系统桥接层
+│   │       └── shutong_init.py     # 目录初始化
+│   └── tests/                # 75 个单元测试
+└── frontend/
+    └── src/                  # React + TypeScript
+```
+
+---
+
+## 欢迎加入
+
+书童是一个实验性项目，验证"模型判断嵌入代码"这条路是否走得通。
+
+如果你对以下方向感兴趣，欢迎提 Issue、PR 或讨论：
+
+- **协议扩展**：上下文编排器、记忆域、梦境整合
+- **意图识别优化**：更小模型、更低延迟、更高准确率
+- **新场景验证**：把 HACP 应用到需求对齐之外的场景
+- **批评与反驳**：如果这个方向有问题，我们想知道
+
+---
+
+## 许可证
 
 MIT
