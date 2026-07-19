@@ -1,173 +1,168 @@
-# 书童 ShuTong — HACP 协议验证 Demo
+# 书童 ShuTong — HACP Protocol Verification Demo
 
 > **Version**: V0.1
 >
-> 书童是《人工智能协作规范》(HACP) 的第一个验证实现。
-> 不是生产级产品，是协议可行性的证明。
+> 书童是《人工智能协作规范》(HACP) 的第一个验证实现。不是生产级产品，是协议可行性的证明。
+>
+> ShuTong is the first verification implementation of the Human-AI Collaboration Protocol (HACP). Not a production product — a proof of protocol feasibility.
 
 ---
 
-## 一句话
+## 一句话 / TL;DR
 
 **把模型的语义判断能力嵌入代码的功能节点，替代关键词匹配和硬编码规则。**
 
----
-
-## 为什么做这件事
-
-AI 系统里到处都是判断节点：用户说"就这样"是想停止还是随口一说？用户说"确认"是要写入还是只是附和？
-
-传统方案只有一个答案：**硬编码**。关键词列表、正则表达式、if-else 分支。列表永远膨胀，规则永远有漏洞。
-
-书童验证了第二种选择：**让本地小模型（7B 甚至更小）来理解语义，让代码来做确定性校验。**
-
-模型不做规则的事，规则不做模型的事。
+**Embed LLM semantic understanding into code's decision nodes, replacing keyword matching and hardcoded rules.**
 
 ---
 
-## 核心特点
+## 为什么做这件事 / Why
 
-### 1. 意图识别：模型语义判断替代关键词匹配
+AI 系统里到处都是判断节点：用户说"就这样"是想停止还是随口一说？传统方案只有硬编码——关键词列表永远膨胀，规则永远有漏洞。
+
+书童验证了第二种选择：让本地小模型（7B）理解语义，让代码做确定性校验。模型不做规则的事，规则不做模型的事。
+
+AI systems are full of decision nodes: when a user says "that's enough", do they mean stop or just casual talk? The traditional answer is hardcoded keyword lists — they always expand, always have gaps.
+
+ShuTong verifies a second option: let a local small model (7B) understand semantics, let code do deterministic validation. The model doesn't do the rules' job; the rules don't do the model's job.
+
+---
+
+## 核心特点 / Key Features
+
+### 1. 意图识别：模型语义判断替代关键词匹配 / Intent Recognition: Model Semantics Replace Keywords
 
 ```python
-# 传统做法：关键词列表，永远膨胀，永远误触发
+# 传统 / Traditional: keyword list, always expanding, always triggering falsely
 STOP_KEYWORDS = ["就这样", "先这样", "够了", "别问了", ...]
 if any(kw in user_input for kw in STOP_KEYWORDS):
     stop()
 
-# 书童的做法：交给本地模型判断
+# 书童 / ShuTong: let the local model judge
 intent = await _recognize_intent(user_input)  # → "stop" / "continue" / ...
 ```
 
-| 输入 | 关键词匹配 | 模型判断 |
+| 输入 / Input | 关键词匹配 / Keywords | 模型判断 / Model |
 |------|-----------|---------|
 | "就这样" | ✅ 触发 | ✅ stop |
 | "我不想就这样结束" | ❌ 误触发 | ✅ continue（否定词反转） |
 | "赶紧给我出方案别墨迹了" | ❌ 漏掉 | ✅ stop（语义推断） |
 
-### 2. 追问触发：模型暴露不确定性 + 规则引擎结构校验
+### 2. 追问触发：模型暴露不确定性 + 规则引擎校验 / Questioning: Model Exposes Uncertainty + Rule Engine Validates
 
 LLM 生成认知显化（假设清单 + 盲区清单），规则引擎只做文本模式扫描：
 
-- 有"来源：纯猜测" → 强制追问
-- 有"是否阻断：是" → 强制追问
-- 没有假设清单结构 → 强制重新输出
+The LLM generates cognitive externalization (assumption list + gap list). The rule engine only scans text patterns:
 
-**模型负责暴露不确定性（概率性），规则负责校验结构完整性（确定性）。**
+- 有"来源：纯猜测" → 强制追问 / Has "source: pure guess" → force questioning
+- 有"是否阻断：是" → 强制追问 / Has "blocking: yes" → force questioning
+- 没有假设清单结构 → 强制重新输出 / Missing structure → force re-output
 
-### 3. 信息传递：选择可概率，传递必确定
+### 3. 信息传递：选择可概率，传递必确定 / Information Transfer: Selection Probabilistic, Transfer Deterministic
 
 - 选择阶段：模型可以概率性地决定选哪条记忆、是否触发追问
-- 传递阶段：用户确认的事实必须原文完整注入，零压缩、零失真、可追溯
+- 传递阶段：用户确认的事实必须原文完整注入，零压缩、零失真
 
-预览中每条已确认要点必须附"用户原话"对照——防止 LLM 错误标注来源。
-
----
-
-## 优势与局限
-
-### 优势
-
-| 维度 | 说明 |
-|------|------|
-| **语义理解** | 本地模型能理解"就这样"和"我不想就这样结束"的区别，关键词做不到 |
-| **零维护** | 不需要维护膨胀的关键词列表和 if-else 分支 |
-| **可审计** | 规则引擎只做文本扫描，结果确定性、可解释 |
-| **低成本** | 意图识别用本地 7B 模型，不调用云端 API |
-| **隐私安全** | 意图判断在本地完成，用户数据不出本机 |
-
-### 局限
-
-| 维度 | 说明 |
-|------|------|
-| **延迟** | 每次对话触发 2 次 LLM 调用（意图识别 + 认知显化），响应延迟约 2-10 秒 |
-| **本地模型能力** | 7B 模型对复杂语义的理解不如云端大模型，边界案例可能误判 |
-| **不稳定性** | 模型输出有概率性，同一输入可能返回不同意图 |
-| **资源占用** | 本地模型需要 GPU 显存（约 4-8GB） |
+Selection phase: the model can probabilistically decide which memory to use, whether to trigger questioning.
+Transfer phase: user-confirmed facts must be injected verbatim, zero compression, zero distortion.
 
 ---
 
-## 未来方向
+## 优势与局限 / Strengths & Limitations
+
+### 优势 / Strengths
+
+| 维度 | 说明 |
+|------|------|
+| 语义理解 / Semantic Understanding | 本地模型能理解"就这样"和"我不想就这样结束"的区别 |
+| 零维护 / Zero Maintenance | 不需要维护膨胀的关键词列表 |
+| 可审计 / Auditable | 规则引擎只做文本扫描，结果确定性、可解释 |
+| 低成本 / Low Cost | 意图识别用本地 7B 模型，不调用云端 API |
+| 隐私安全 / Privacy | 意图判断在本地完成，用户数据不出本机 |
+
+### 局限 / Limitations
+
+| 维度 | 说明 |
+|------|------|
+| 延迟 / Latency | 每次对话 2 次 LLM 调用（意图识别 + 认知显化），响应 2-10 秒 |
+| 本地模型能力 / Local Model | 7B 模型对复杂语义的理解不如云端大模型 |
+| 不稳定性 / Instability | 模型输出有概率性，同一输入可能返回不同意图 |
+| 资源占用 / Resources | 本地模型需要 GPU 显存（约 4-8GB） |
+
+---
+
+## 未来方向 / Roadmap
 
 | 方向 | 说明 |
 |------|------|
-| **合并调用** | 将意图识别与认知显化合并为单次 LLM 调用，降低延迟 |
-| **更小模型** | 用 0.5B-1B 专用意图分类模型替代通用 7B 模型 |
-| **上下文编排** | 四层注意力位阶（系统/前置/中置/近因），不同位阶不同压缩规则 |
-| **记忆域** | 热/温/冷三层记忆，标签精确匹配，梦境整合自动沉淀 |
-| **编程 AI 对接** | 产品包驱动 Cursor / Claude / OpenAI 直接产出代码 |
+| 合并调用 | 将意图识别与认知显化合并为单次 LLM 调用，降低延迟 |
+| 更小模型 | 用 0.5B-1B 专用意图分类模型替代通用 7B 模型 |
+| 上下文编排 | 四层注意力位阶（系统/前置/中置/近因） |
+| 记忆域 | 热/温/冷三层记忆，标签精确匹配，梦境整合 |
+| 编程 AI 对接 | 产品包驱动 Cursor / Claude 直接产出代码 |
 
 ---
 
-## 协议适用性
+## 协议适用性 / Applicability
 
-HACP（Human-AI Collaboration Protocol）不是特定产品的技术方案，是一种**人机协作协议**。
+HACP 是一种人机协作协议，不是特定产品的技术方案。
 
-适用场景：
+HACP is a human-AI collaboration protocol, not a product-specific technical solution.
+
+**适用 / Applicable:**
 - 需求对齐：在动手之前确保 AI 和用户理解一致
 - 知识沉淀：将对话中的确认事实结构化持久化
 - 决策审计：每条决策都有来源标注和用户原话对照
-- 产品规划：从模糊想法到结构化产品包的渐进式对齐
 
-不适用场景：
+**不适用 / Not Applicable:**
 - 简单问答（不需要追问确认）
 - 实时交互（延迟太高）
 - 纯自动化流程（需要人工参与）
 
 ---
 
-## 理论基础
+## 理论基础 / Theoretical Foundation
 
-书童的理论体系基于三个原则：
+**1. 概率确定 / Probabilistic Certainty**
+选择行为可概率，信息传递必确定。
+Selection can be probabilistic; transfer must be deterministic.
 
-**1. 概率确定**
-系统在"选择行为"上接受概率性（模型判断），但在"信息传递"上保持绝对确定性（用户确认后原文注入）。
+**2. 禁止性描述优于正向描述 / Prohibitive Descriptions Beat Positive Ones**
+不说"你要诚实"，说"禁止把猜测当事实"。
+Don't say "be honest"; say "prohibit presenting guesses as facts".
 
-**2. 禁止性描述优于正向描述**
-不说"你要诚实"，说"禁止把猜测当事实"。不说"你要追问"，说"存在 D 级假设时禁止不追问"。
+**3. 对齐是目的，不是手段 / Alignment Is the Goal, Not the Means**
+追问本身就是核心功能，产品包是终极交付物。
+Questioning itself is the core feature; the product package is the final deliverable.
 
-**3. 对齐是目的，不是手段**
-追问不是为了"更好地完成任务"，追问本身就是核心功能。产品包是终极交付物，不是中间步骤。
-
-详见 [docs/HACP_PROTOCOL.md](docs/HACP_PROTOCOL.md)
+详见 / See [docs/HACP_PROTOCOL.md](docs/HACP_PROTOCOL.md)
 
 ---
 
-## 快速开始
-
-### 1. 克隆
+## 快速开始 / Quick Start
 
 ```bash
+# 1. 克隆 / Clone
 git clone https://github.com/VZIQAQ/shutong.git
 cd shutong
-```
 
-### 2. 启动后端
-
-```bash
+# 2. 启动后端 / Start Backend
 cd backend
 cp .env.example .env
-# 编辑 .env，填入你的 API Key
+# 编辑 .env，填入 API Key / Edit .env, fill in your API Key
 pip install -r requirements.txt
 python run.py
-```
 
-### 3. 启动前端
-
-```bash
+# 3. 启动前端 / Start Frontend
 cd frontend
 cp .env.example .env
 npm install
 npm run dev
-```
 
-### 4. 访问
+# 4. 访问 / Open
+# 浏览器访问 http://localhost:5173
 
-浏览器访问 http://localhost:5173
-
-### 5. 运行测试
-
-```bash
+# 5. 测试 / Test
 cd backend
 pytest src/tests/ -v
 ```
@@ -176,7 +171,7 @@ pytest src/tests/ -v
 
 ---
 
-## 技术栈
+## 技术栈 / Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -187,37 +182,39 @@ pytest src/tests/ -v
 
 ---
 
-## 项目结构
+## 项目结构 / Project Structure
 
 ```
 shutong/
-├── README.md
-├── LICENSE (MIT)
 ├── docs/
-│   ├── HACP_PROTOCOL.md      # 协议设计（哲学与规则）
-│   └── ARCHITECTURE.md       # 架构实现（组件与路线图）
+│   ├── HACP_PROTOCOL.md      # 协议设计 / Protocol design
+│   └── ARCHITECTURE.md       # 架构实现 / Architecture
 ├── backend/
 │   ├── src/
-│   │   ├── main.py           # FastAPI + WebSocket 入口
+│   │   ├── main.py           # FastAPI + WebSocket
 │   │   └── core/
-│   │       ├── session.py          # 对话引擎主流程
-│   │       ├── rule_engine.py      # 规则引擎（文本模式扫描）
-│   │       ├── llm_client.py       # 双模型 LLM 客户端
-│   │       ├── shutong_state.py    # 文件状态机
-│   │       ├── file_bridge.py      # 文件系统桥接层
-│   │       └── shutong_init.py     # 目录初始化
-│   └── tests/                # 75 个单元测试
+│   │       ├── session.py          # 对话引擎 / Dialog engine
+│   │       ├── rule_engine.py      # 规则引擎 / Rule engine
+│   │       ├── llm_client.py       # 双模型客户端 / Dual-model client
+│   │       ├── shutong_state.py    # 文件状态机 / File state machine
+│   │       ├── file_bridge.py      # 文件桥接 / File bridge
+│   │       └── shutong_init.py     # 目录初始化 / Init
+│   └── tests/                # 75 个测试 / 75 tests
 └── frontend/
     └── src/                  # React + TypeScript
 ```
 
 ---
 
-## 欢迎加入
+## 欢迎加入 / Contributing
 
 书童是一个实验性项目，验证"模型判断嵌入代码"这条路是否走得通。
 
+ShuTong is an experimental project verifying whether "embedding model judgment into code" is viable.
+
 如果你对以下方向感兴趣，欢迎提 Issue、PR 或讨论：
+
+If you're interested in the following, welcome to open Issues, PRs, or discussions:
 
 - **协议扩展**：上下文编排器、记忆域、梦境整合
 - **意图识别优化**：更小模型、更低延迟、更高准确率
@@ -226,6 +223,6 @@ shutong/
 
 ---
 
-## 许可证
+## 许可证 / License
 
 MIT
