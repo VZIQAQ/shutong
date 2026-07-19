@@ -14,6 +14,9 @@
 
 **Embed LLM semantic understanding into code's decision nodes, replacing keyword matching and hardcoded rules.**
 
+> HACP 是认知层的人机协作协议，与 CHAP（协作层协议）互补。
+> HACP is a cognitive-layer human-AI collaboration protocol, complementary to CHAP (collaboration-layer protocol).
+
 ---
 
 ## 为什么做这件事 / Why
@@ -25,6 +28,41 @@ AI 系统里到处都是判断节点：用户说"就这样"是想停止还是随
 AI systems are full of decision nodes: when a user says "that's enough", do they mean stop or just casual talk? The traditional answer is hardcoded keyword lists — they always expand, always have gaps.
 
 ShuTong verifies a second option: let a local small model (7B) understand semantics, let code do deterministic validation. The model doesn't do the rules' job; the rules don't do the model's job.
+
+---
+
+## 协议定位 / Protocol Positioning
+
+### CHAP 已经存在 / CHAP Already Exists
+
+2026 年 5 月，arXiv 发布了 CHAP（Collaborative Human-Agent Protocol）——一个正式的人机协作协议，定义了任务分配、审批、覆盖、升级、交接等协作事件的标准化。CHAP 有完整的规范、参考实现和测试套件。
+
+In May 2026, arXiv published CHAP (Collaborative Human-Agent Protocol) — a formal human-AI collaboration protocol defining task assignment, approval, override, escalation, and handoff. CHAP has a complete specification, reference implementation, and test suite.
+
+### HACP 与 CHAP 的关系 / Relationship
+
+CHAP 和 HACP 是**互补**的，不是竞争：
+
+CHAP and HACP are **complementary**, not competing:
+
+| 维度 | CHAP | HACP（书童） |
+|------|------|-------------|
+| **关注点** | 协作层：谁做了什么决定，怎么审计 | 认知层：AI 不确定时怎么办，信息怎么不丢 |
+| **核心问题** | 任务生命周期、审批流程、证据链 | 追问机制、上下文编排、记忆域、概率确定 |
+| **模型角色** | 不讨论（留给应用层） | **核心主张**：模型应该嵌入判断节点 |
+| **追问机制** | "whisper"模式（任务执行中的窄问题） | **认知层基础设施**：追问-校准-确认是核心功能 |
+
+**简单说：CHAP 管"协作流程"，HACP 管"认知对齐"。**
+
+**In short: CHAP manages "collaboration process"; HACP manages "cognitive alignment".**
+
+CHAP 明确把"confidence calibration"和"evidence taxonomy"留给应用层（N1/N3）。HACP 的核心贡献，就是填补了 CHAP 没有覆盖的认知层空白——提出"模型嵌入判断节点"和"概率确定"作为认知对齐的基础设施。
+
+CHAP explicitly leaves "confidence calibration" and "evidence taxonomy" to the application layer (N1/N3). HACP's core contribution fills this cognitive-layer gap — proposing "model-embedded decision nodes" and "probabilistic certainty" as cognitive alignment infrastructure.
+
+书童不是 CHAP 的替代，而是 HACP 的第一个验证 Demo。
+
+ShuTong is not a replacement for CHAP — it is the first verification demo of HACP.
 
 ---
 
