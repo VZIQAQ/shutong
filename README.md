@@ -197,7 +197,7 @@ Don't say "be honest"; say "prohibit presenting guesses as facts".
 追问本身就是核心功能，产品包是终极交付物。
 Questioning itself is the core feature; the product package is the final deliverable.
 
-详见 / See [docs/HACP_PROTOCOL.md](docs/HACP_PROTOCOL.md)
+详见 / See [PROTOCOL.md](PROTOCOL.md)
 
 ---
 
@@ -248,9 +248,13 @@ pytest tests/ -v
 
 ```
 shutong/
+├── PROTOCOL.md                # 协议总览 / Protocol overview
 ├── docs/
-│   ├── HACP_PROTOCOL.md      # 协议设计 / Protocol design
-│   └── ARCHITECTURE.md       # 架构实现 / Architecture
+│   ├── protocol/
+│   │   ├── probabilistic-determinism.md  # 概率确定 / Probabilistic determinism
+│   │   ├── query-mechanism.md            # 追问机制 / Query mechanism
+│   │   └── attention-hierarchy.md        # 上下文编排 / Context orchestrator
+│   └── ARCHITECTURE.md                   # 架构实现 / Architecture
 ├── backend/
 │   ├── src/
 │   │   ├── main.py           # FastAPI + WebSocket
