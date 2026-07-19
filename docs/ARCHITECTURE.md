@@ -1,8 +1,13 @@
 # 书童（ShuTong）系统白皮书 —— 架构与实现
 
-> **版本**：v0.5  
-> **日期**：2026-07-19  
-> **配套文档**：[书童系统实现白皮书_v0.5_哲学与协议.md](书童系统实现白皮书_v0.5_哲学与协议.md)
+> **版本**：v0.5 (开源版 V0.1)
+> **日期**：2026-07-19
+> **配套文档**：[HACP_PROTOCOL.md](HACP_PROTOCOL.md)
+>
+> ⚠️ **验证状态说明**：
+> - ✅ 已验证：追问机制、意图识别（模型语义判断）、规则引擎、停止信号、确认写入
+> - 📝 协议设计：上下文编排器（四层位阶）、记忆域（热/温/冷三层）、梦境整合
+> - 文中伪代码为设计阶段产物，实际实现请参考 `backend/src/core/` 源码
 
 ---
 
@@ -70,7 +75,9 @@
 
 ---
 
-## 二、上下文编排器：实现规格
+## 二、上下文编排器：实现规格 📝
+
+> **状态**：协议设计，尚未完整实现。当前仅实现热层（conversation_history）+ 简化前置区（已 confirmed 文件内容）。
 
 ### 2.1 四层注意力位阶
 
@@ -123,7 +130,9 @@
 
 ---
 
-## 三、记忆域：数据模型与生命周期
+## 三、记忆域：数据模型与生命周期 📝
+
+> **状态**：MVP 仅实现热层（conversation_history）+ 温层（.shutong/ 文件）。冷层、梦境整合待后续复用元婴代码。
 
 ### 3.1 当前实现（MVP）
 
@@ -237,69 +246,37 @@ MVP阶段记忆域简化为两层：
 - 复杂需求确实需要多轮才能说清楚
 - 硬限制会打断深度思考，软提示让用户自己决定"够了吗"
 
-### 4.2 追问触发规则（伪代码）
+### 4.2 追问触发规则（已验证）
 
-```python
-def should_clarify(cognition_result, session_state):
-    assumptions = cognition_result.assumptions
-    gaps = cognition_result.gaps
-    topic = cognition_result.topic
+> **V0.1 实现**：意图识别已重构为本地模型语义判断（`_recognize_intent()`），零关键词匹配。
+> 规则引擎（`rule_engine.py`）只做文本模式扫描，不调用 LLM。
 
-    # 规则1: D级假设拦截（来源为"纯猜测"）
-    has_pure_guess = any(a.source == "pure_guess" for a in assumptions)
-    if has_pure_guess:
-        current_round = session_state.clarify_count.get(topic, 0)
-        should_remind = current_round >= N
-        return "clarify", should_remind, "存在D级假设，必须追问"
+**实际实现流程：**
 
-    # 规则2: 阻断盲区拦截
-    has_blocking_gap = any(g.is_blocking for g in gaps)
-    if has_blocking_gap:
-        current_round = session_state.clarify_count.get(topic, 0)
-        should_remind = current_round >= N
-        return "clarify", should_remind, "存在阻断盲区，必须追问"
-
-    # 规则3: 无问题，出预览或产品包
-    if session_state.current_state == "preview_confirmed":
-        return "preview", False, "预览已确认，输出产品包"
-    return "preview", False, "无D级假设和阻断盲区，出预览"
-
-
-def handle_user_response(user_input, session_state):
-    stop_signals = ["就这样", "先做吧", "你定吧", "别问了", "直接写", "确认"]
-
-    if any(signal in user_input for signal in stop_signals):
-        return "force_preview", "用户要求停止追问"
-
-    if user_input in ["对", "行", "好", "是的", "没问题"]:
-        return "confirm", "用户确认"
-
-    return "continue", "用户继续对话"
+```
+用户输入
+  → _recognize_intent()（本地 Ollama 模型，读完整对话历史，返回 5 种意图之一）
+  → stop → 有 pending_draft 则确认写入，无则 _force_preview() 强制出预览
+  → direct_write → fb.write_file() 直接写磁盘
+  → show → 展示草案卡片
+  → skip → 跳过草案
+  → continue → _llm_cognition_flow()（LLM 认知显化 + rule_engine 结构校验）
 ```
 
-### 4.3 轮次计数规则（软提醒）
+**规则引擎校验逻辑（`rule_engine.py`）：**
+- 扫描 LLM 输出，检查是否包含"假设清单""盲区清单"结构
+- 正则匹配"来源：纯猜测" → 强制追问
+- 正则匹配"是否阻断：是" → 强制追问
+- 不做语义判断，只做文本模式匹配
 
-```python
-class ClarifyCounter:
-    def __init__(self, remind_threshold=3):
-        self.topic_counts = {}
-        self.remind_threshold = remind_threshold
+### 4.3 轮次计数规则（已验证）
 
-    def increment(self, topic):
-        self.topic_counts[topic] = self.topic_counts.get(topic, 0) + 1
+**V0.1 实现**：`session.py` 中 `clarify_counter: dict[str, int]` 按 topic 维度计数。
 
-    def should_remind(self, topic):
-        return self.topic_counts.get(topic, 0) >= self.remind_threshold
-
-    def get_count(self, topic):
-        return self.topic_counts.get(topic, 0)
-```
-
-**软提醒行为：**
-- 轮次 < N：正常追问，不追加提示
-- 轮次 >= N：追问末尾追加提醒："关于[话题]还有X个未确认项，你可以继续补充，也可以随时说'就这样'让我先出预览"
-- 用户说"继续"：继续追问，下一轮再次提醒
-- 用户说"就这样"：强制出预览，标注"用户主动停止追问"
+- 轮次 < 3：正常追问，不追加提示
+- 轮次 >= 3：追问末尾追加提醒："你也可以随时说「就这样」让我先出预览"
+- 用户说"就这样"（intent=stop）：`_force_preview()` 强制出预览，标注"用户主动停止追问"
+- 用户说"确认"（intent=direct_write）：`fb.write_file()` 写入磁盘
 
 ---
 
@@ -417,42 +394,35 @@ locked_at: 2026-07-18T14:30:00+08:00
 - [x] 写入后AI主动引导下一步
 - [x] 文件状态机：empty→drafting→pending_confirm→confirmed
 
-**Phase 0 已知缺失（Phase 1-2补齐）：**
-- [ ] 模型输出未强制要求【假设清单】【盲区清单】结构
-- [ ] 规则引擎未实现结构检测（目前靠模型自觉）
-- [ ] 来源标注检验未实现（目前不区分用户说过/猜测）
-- [ ] 轮次提醒未实现（目前模型自行决定何时出预览）
-- [ ] 预览中未包含"用户原话"对照
+### Phase 1：认知显化与规则引擎 ✅ 已完成
 
-### Phase 1：认知显化与规则引擎
+**已交付：**
+- `rule_engine.py`：规则引擎（结构检测+来源标注检验），纯文本模式扫描，零 LLM 调用
+- `session.py`：JUDGE_SYSTEM_PROMPT 融入认知显化格式（假设清单+盲区清单+来源标注）
+- `_force_preview()`：用户喊停时基于已有信息强制生成预览
 
-**目标**：实现白皮书的"认知显化+假设清单+盲区清单"协议。
+**已验证：**
+- [x] LLM 输出包含假设清单 + 盲区清单 + 来源标注
+- [x] 规则引擎扫描"来源：纯猜测" → 强制追问
+- [x] 规则引擎扫描"是否阻断：是" → 强制追问
+- [x] 75 个单元测试全部通过
 
-**交付物：**
-- `cognitive_externalizer.py`：认知显化生成器（结构化自然语言输出）
-- `rule_engine.py`：规则引擎（结构检测+来源标注检验）
-- 系统提示词更新：融入禁止性描述协议
+### Phase 2：追问策略与软提醒 ✅ 已完成
 
-**技术规格：**
-- 认知显化输出为对话形式（非JSON卡片）
-- 规则引擎扫描LLM输出文本，检查"假设清单""盲区清单"结构
-- 来源标注为"纯猜测"的假设触发追问
+**已交付：**
+- `_recognize_intent()`：意图识别重构为本地模型语义判断，零关键词匹配
+- `clarify_counter`：按 topic 维度计数，≥3 轮追加软提醒
+- `_force_preview()`：用户说"就这样"时强制出预览，含格式化预览（✅/⚠️/❓）
+- `direct_write` 意图：用户说"确认"时直接写入磁盘
 
-### Phase 2：追问策略与软提醒
+**已验证：**
+- [x] "就这样" → stop → 强制出预览
+- [x] "我不想就这样结束" → continue（否定词反转）
+- [x] "确认" → direct_write → 文件写入磁盘
+- [x] 连续追问 ≥3 轮 → 软提醒
+- [x] 预览含用户原话对照
 
-**目标**：追问有策略，轮次软提醒，用户可随时停止。
-
-**交付物：**
-- `clarify_engine.py`：追问触发规则引擎
-- 软提醒实现：≥N轮时追问末尾追加"可随时喊停"提示
-- 用户意图识别增强：识别"先出预览""继续补充""就这样"等
-
-**技术规格：**
-- 状态：START → COGNITION → RULE_CHECK → [CLARIFY|PREVIEW|PACKAGE] → LOCKED
-- 轮次计数：按topic维度，≥N轮时追加提醒（不强制截断）
-- 用户说"就这样"：强制出预览，标注"用户主动停止追问"
-
-### Phase 3：记忆域增强（复用元婴代码）
+### Phase 3：记忆域增强 📝 待实现
 
 **目标**：热/温/冷三层记忆，跨对话记忆。
 
@@ -461,7 +431,7 @@ locked_at: 2026-07-18T14:30:00+08:00
 - `context_assembler.py`：四层位阶编排器
 - 片段编码规范实现
 
-### Phase 4：编程AI对接
+### Phase 4：编程AI对接 📝 待实现
 
 **目标**：产品包能驱动编程AI产出代码。
 
@@ -470,7 +440,7 @@ locked_at: 2026-07-18T14:30:00+08:00
 - 产品包注入：作为system prompt的一部分
 - 偏差记录与反馈
 
-### Phase 5：审计与沉淀（持续）
+### Phase 5：审计与沉淀 📝 待实现
 
 **目标**：系统可观测，记忆可沉淀。
 
