@@ -98,7 +98,8 @@ The LLM generates cognitive externalization (assumption list + gap list). The ru
 
 ### 3. 信息传递：选择可概率，传递必确定 / Information Transfer: Selection Probabilistic, Transfer Deterministic
 
-- 选择阶段：模型可以概率性地决定选哪条记忆、是否触发追问
+- 选择阶段：模型可以概率性地决定选哪条记忆、是否触发追问——这是它的认知自由。
+  **概率采样对模型而言就是确定性选择，不需要 confidence score 二次确认。**
 - 传递阶段：用户确认的事实必须原文完整注入，零压缩、零失真
 
 Selection phase: the model can probabilistically decide which memory to use, whether to trigger questioning.
@@ -162,8 +163,31 @@ HACP is a human-AI collaboration protocol, not a product-specific technical solu
 ## 理论基础 / Theoretical Foundation
 
 **1. 概率确定 / Probabilistic Certainty**
-选择行为可概率，信息传递必确定。
-Selection can be probabilistic; transfer must be deterministic.
+
+不是"选择行为可概率，信息传递必确定"这么简单的二分。
+
+核心认识论立场：**概率性不是认知的缺陷，是认知的固有属性。**
+
+人脑决策也是概率性的——神经元随机放电，突触权重波动。
+你选择喝可乐而不是雪碧时，不会说"我的 confidence 只有 0.73，请你校准一下"。
+你的选择就是你当前认知状态的确定性表达。
+
+模型同理。它的概率采样不是"不确定的信号"，而是它在当前权重和上下文下的确定性认知结果。
+
+因此 HACP 拒绝置信度：
+- 让模型输出 {"intent": "stop", "confidence": 0.85} = 让模型做元认知
+- 但模型的 confidence 和实际准确率经常脱钩
+- 置信度本身也是概率性输出——用不确定性的不确定性来降低不确定性，这是无限回归
+
+HACP 终止这个回归：
+- 模型选择 intent="stop" → 这就是它的判断
+- 规则层校验条件 → 确定性执行
+- 错了？审计日志记录 → 下次迭代修正 prompt
+
+**不是"因为模型不可靠所以不用置信度"，是"因为概率性本身就是认知的固有属性，所以不需要置信度"。**
+
+选择阶段：模型概率采样——这是它的认知自由。
+传递阶段：原文完整注入——一旦选中，零压缩、零失真。
 
 **2. 禁止性描述优于正向描述 / Prohibitive Descriptions Beat Positive Ones**
 不说"你要诚实"，说"禁止把猜测当事实"。
