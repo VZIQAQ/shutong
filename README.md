@@ -14,8 +14,8 @@
 
 **Embed LLM semantic understanding into code's decision nodes, replacing keyword matching and hardcoded rules.**
 
-> HACP 是认知层的人机协作协议，与 CHAP（协作层协议）互补。
-> HACP is a cognitive-layer human-AI collaboration protocol, complementary to CHAP (collaboration-layer protocol).
+> HACP 是认知层的人机协作协议，与 CHAP（协作层协议）解决完全不同的问题。
+> HACP is a cognitive-layer human-AI collaboration protocol; CHAP is a collaboration-layer protocol. They solve completely different problems.
 
 ---
 
@@ -41,9 +41,9 @@ In May 2026, arXiv published CHAP (Collaborative Human-Agent Protocol) — a for
 
 ### HACP 与 CHAP 的关系 / Relationship
 
-CHAP 和 HACP 是**互补**的，不是竞争：
+CHAP 和 HACP 解决完全不同的问题：
 
-CHAP and HACP are **complementary**, not competing:
+CHAP and HACP solve completely different problems:
 
 | 维度 | CHAP | HACP（书童） |
 |------|------|-------------|
@@ -56,7 +56,7 @@ CHAP and HACP are **complementary**, not competing:
 
 **In short: CHAP manages "collaboration process"; HACP manages "cognitive alignment".**
 
-CHAP 明确把"confidence calibration"和"evidence taxonomy"留给应用层（N1/N3）。HACP 的核心贡献，就是填补了 CHAP 没有覆盖的认知层空白——提出"模型嵌入判断节点"和"概率确定"作为认知对齐的基础设施。
+CHAP 不覆盖认知层，HACP 不覆盖协作层。两者可以在同一个系统中共存，但不存在谁填补谁的关系。HACP 的核心贡献是提出"模型嵌入判断节点"和"概率确定"作为认知对齐的基础设施。
 
 CHAP explicitly leaves "confidence calibration" and "evidence taxonomy" to the application layer (N1/N3). HACP's core contribution fills this cognitive-layer gap — proposing "model-embedded decision nodes" and "probabilistic certainty" as cognitive alignment infrastructure.
 
