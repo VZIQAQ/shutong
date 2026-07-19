@@ -1,5 +1,9 @@
 # 上下文编排器 / Context Orchestrator
 
+> **协议名称**：书童协议（ShuTong Protocol）
+> **版本**：V0.1
+> **日期**：2026-07-20
+>
 > 四层注意力位阶 + 片段编码规范
 >
 > 📝 协议设计，尚未完整实现。当前仅实现热层（conversation_history）+ 简化前置区（已 confirmed 文件内容）。

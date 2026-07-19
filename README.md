@@ -1,10 +1,10 @@
-# 书童 ShuTong — HACP Protocol Verification Demo
+# 书童 ShuTong — ShuTong Protocol Verification Demo
 
 > **Version**: V0.1
 >
-> 书童是《人工智能协作规范》(HACP) 的第一个验证实现。不是生产级产品，是协议可行性的证明。
+> 书童是书童协议（ShuTong Protocol）的第一个验证实现。不是生产级产品，是协议可行性的证明。
 >
-> ShuTong is the first verification implementation of the Human-AI Collaboration Protocol (HACP). Not a production product — a proof of protocol feasibility.
+> ShuTong is the first verification implementation of the ShuTong Protocol. Not a production product — a proof of protocol feasibility.
 
 ---
 
@@ -14,8 +14,8 @@
 
 **Embed LLM semantic understanding into code's decision nodes, replacing keyword matching and hardcoded rules.**
 
-> HACP 是认知层的人机协作协议，与 CHAP（协作层协议）解决完全不同的问题。
-> HACP is a cognitive-layer human-AI collaboration protocol; CHAP is a collaboration-layer protocol. They solve completely different problems.
+> 书童协议是认知层的人机协作协议，与 CHAP（协作层协议）解决完全不同的问题。
+> ShuTong Protocol is a cognitive-layer human-AI collaboration protocol; CHAP is a collaboration-layer protocol. They solve completely different problems.
 
 ---
 
@@ -39,30 +39,30 @@ ShuTong verifies a second option: let a local small model (7B) understand semant
 
 In May 2026, arXiv published CHAP (Collaborative Human-Agent Protocol) — a formal human-AI collaboration protocol defining task assignment, approval, override, escalation, and handoff. CHAP has a complete specification, reference implementation, and test suite.
 
-### HACP 与 CHAP 的关系 / Relationship
+### 书童协议与 CHAP 的关系 / Relationship
 
-CHAP 和 HACP 解决完全不同的问题：
+CHAP 和书童协议解决完全不同的问题：
 
-CHAP and HACP solve completely different problems:
+CHAP and ShuTong Protocol solve completely different problems:
 
-| 维度 | CHAP | HACP（书童） |
-|------|------|-------------|
+| 维度 | CHAP | 书童协议 |
+|------|------|---------|
 | **关注点** | 协作层：谁做了什么决定，怎么审计 | 认知层：AI 不确定时怎么办，信息怎么不丢 |
 | **核心问题** | 任务生命周期、审批流程、证据链 | 追问机制、上下文编排、记忆域、概率确定 |
 | **模型角色** | 不讨论（留给应用层） | **核心主张**：模型应该嵌入判断节点 |
 | **追问机制** | "whisper"模式（任务执行中的窄问题） | **认知层基础设施**：追问-校准-确认是核心功能 |
 
-**简单说：CHAP 管"协作流程"，HACP 管"认知对齐"。**
+**简单说：CHAP 管"协作流程"，书童协议管"认知对齐"。**
 
-**In short: CHAP manages "collaboration process"; HACP manages "cognitive alignment".**
+**In short: CHAP manages "collaboration process"; ShuTong Protocol manages "cognitive alignment".**
 
-CHAP 不覆盖认知层，HACP 不覆盖协作层。两者可以在同一个系统中共存，但不存在谁填补谁的关系。HACP 的核心贡献是提出"模型嵌入判断节点"和"概率确定"作为认知对齐的基础设施。
+CHAP 不覆盖认知层，书童协议不覆盖协作层。两者可以在同一个系统中共存，但不存在谁填补谁的关系。书童协议的核心贡献是提出"模型嵌入判断节点"和"概率确定"作为认知对齐的基础设施。
 
-CHAP explicitly leaves "confidence calibration" and "evidence taxonomy" to the application layer (N1/N3). HACP's core contribution fills this cognitive-layer gap — proposing "model-embedded decision nodes" and "probabilistic certainty" as cognitive alignment infrastructure.
+CHAP doesn't cover the cognitive layer; ShuTong Protocol doesn't cover the collaboration layer. They can coexist in the same system. ShuTong Protocol's core contribution is proposing "model-embedded decision nodes" and "probabilistic certainty" as cognitive alignment infrastructure.
 
-书童不是 CHAP 的替代，而是 HACP 的第一个验证 Demo。
+书童不是 CHAP 的替代，而是书童协议的第一个验证 Demo。
 
-ShuTong is not a replacement for CHAP — it is the first verification demo of HACP.
+ShuTong is not a replacement for CHAP — it is the first verification demo of the ShuTong Protocol.
 
 ---
 
@@ -144,9 +144,9 @@ Transfer phase: user-confirmed facts must be injected verbatim, zero compression
 
 ## 协议适用性 / Applicability
 
-HACP 是一种人机协作协议，不是特定产品的技术方案。
+书童协议是一种人机协作协议，不是特定产品的技术方案。
 
-HACP is a human-AI collaboration protocol, not a product-specific technical solution.
+ShuTong Protocol is a human-AI collaboration protocol, not a product-specific technical solution.
 
 **适用 / Applicable:**
 - 需求对齐：在动手之前确保 AI 和用户理解一致
@@ -164,7 +164,7 @@ HACP is a human-AI collaboration protocol, not a product-specific technical solu
 
 **1. 概率确定 / Probabilistic Certainty**
 
-不是"选择行为可概率，信息传递必确定"这么简单的二分。
+不是"选择行为可概率，传递必确定"这么简单的二分。
 
 核心认识论立场：**概率性不是认知的缺陷，是认知的固有属性。**
 
@@ -174,12 +174,12 @@ HACP is a human-AI collaboration protocol, not a product-specific technical solu
 
 模型同理。它的概率采样不是"不确定的信号"，而是它在当前权重和上下文下的确定性认知结果。
 
-因此 HACP 拒绝置信度：
+因此书童协议拒绝置信度：
 - 让模型输出 {"intent": "stop", "confidence": 0.85} = 让模型做元认知
 - 但模型的 confidence 和实际准确率经常脱钩
 - 置信度本身也是概率性输出——用不确定性的不确定性来降低不确定性，这是无限回归
 
-HACP 终止这个回归：
+书童协议终止这个回归：
 - 模型选择 intent="stop" → 这就是它的判断
 - 规则层校验条件 → 确定性执行
 - 错了？审计日志记录 → 下次迭代修正 prompt
@@ -284,7 +284,7 @@ If you're interested in the following, welcome to open Issues, PRs, or discussio
 
 - **协议扩展**：上下文编排器、记忆域、梦境整合
 - **意图识别优化**：更小模型、更低延迟、更高准确率
-- **新场景验证**：把 HACP 应用到需求对齐之外的场景
+- **新场景验证**：把书童协议应用到需求对齐之外的场景
 - **批评与反驳**：如果这个方向有问题，我们想知道
 
 ---
