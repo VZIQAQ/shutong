@@ -1,3 +1,4 @@
+> 📖 本项目所实现的协议规范见：[书童协议（ShuTong Protocol）](https://github.com/VZIQAQ/shutong-protocol)
 # 书童 ShuTong — ShuTong Protocol Verification Demo
 
 > **Version**: V0.1
