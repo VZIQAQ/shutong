@@ -287,4 +287,4 @@ If you're interested in the following, welcome to open Issues, PRs, or discussio
 
 ## 许可证 / License
 
-MIT
+Apache-2.0
