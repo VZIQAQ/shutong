@@ -1,11 +1,15 @@
 > 📖 本项目所实现的协议规范见：[书童协议（ShuTong Protocol）](https://github.com/VZIQAQ/shutong-protocol)
-# 书童 ShuTong — ShuTong Protocol Verification Demo
+# 书童 ShuTong
 
-> **Version**: V0.1
->
-> 书童是书童协议（ShuTong Protocol）的第一个验证实现。不是生产级产品，是协议可行性的证明。
->
-> ShuTong is the first verification implementation of the ShuTong Protocol. Not a production product — a proof of protocol feasibility.
+**一个让 AI 在不确定时停下来问你的协议验证 Demo**
+
+[![Watch the demo](https://img.shields.io/badge/demo-watch-blue)](链接) 
+[![Run in your browser](https://img.shields.io/badge/run-online-green)](链接)
+
+> 这不是一个聊天机器人。它是“AI 的认知审计层”的可行性验证。
+
+书童验证一件事：**让本地小模型理解语义，让代码做确定性判断**——用模型判断替代关键词匹配，用规则校验替代黑箱输出。
+
 
 ---
 
